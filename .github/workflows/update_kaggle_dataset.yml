@@ -53,4 +53,4 @@ jobs:
           kaggle datasets create -p . || echo "Dataset already exists, continuing to update."
 
       - name: Update Kaggle Dataset
-        run: kaggle datasets version -p . -m "Updated dataset with new changes"
+        run: kaggle datasets version -p . --dir-mode zip -m "Updated dataset with new changes"
