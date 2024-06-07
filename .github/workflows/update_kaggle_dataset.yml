@@ -41,11 +41,12 @@ jobs:
           }' > dataset-metadata.json
 
       - name: Zip the dataset
+        shell: pwsh
         run: |
-          cd C:\Users\roger\Github\chat-langchain
           if (Test-Path ../chat-langchain-repo.zip) { Remove-Item ../chat-langchain-repo.zip }
           $filesToZip = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch "\.env$" }
           Compress-Archive -Path $filesToZip.FullName -DestinationPath ../chat-langchain-repo.zip -Force
+
 
       - name: Check if dataset exists and create if not
         run: |
