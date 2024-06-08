@@ -43,7 +43,7 @@ jobs:
           } else {
             Write-Host "Virtual environment is not activated. Activating virtual environment..."
             # Hardcoded path to your virtual environment
-            $venvPath = "C:\Users\roger\Github\chat-langchain\venv\Scripts\Activate.ps1"
+            $venvPath = "C:\Users\roger\Github\chat-langchain\chat-langchain\Scripts\Activate.ps1"
             & $venvPath
           }
         shell: pwsh
