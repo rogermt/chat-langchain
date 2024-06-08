@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.10'
 
-       - name: Install Poetry
+      - name: Install Poetry
         run: |
           python -m pip install poetry==1.1.11
         shell: pwsh
@@ -47,18 +47,21 @@ jobs:
         run: |
           python -m poetry install
         shell: pwsh
-        
+
       - name: Update lock file
         run: poetry lock --no-update
+        shell: pwsh
 
       - name: Install Kaggle API
-        run: pip install kaggle
+        run: python -m poetry run pip install kaggle
+        shell: pwsh
 
       - name: Configure Kaggle API credentials
         run: |
           mkdir -p ~/.kaggle
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
+        shell: pwsh
 
       - name: Create dataset metadata
         run: |
@@ -71,18 +74,19 @@ jobs:
               }
             ]
           }' > dataset-metadata.json
+        shell: pwsh
 
       - name: Zip the dataset
-        shell: pwsh
         run: |
           if (Test-Path ../chat-langchain-repo.zip) { Remove-Item ../chat-langchain-repo.zip }
           $filesToZip = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch "\.env$" }
           Compress-Archive -Path $filesToZip.FullName -DestinationPath ../chat-langchain-repo.zip -Force
-
+        shell: pwsh
 
       - name: Check if dataset exists and create if not
-        run: |
-          kaggle datasets create -p . || echo "Dataset already exists, continuing to update."
+        run: python -m poetry run kaggle datasets create -p . || echo "Dataset already exists, continuing to update."
+        shell: pwsh
 
       - name: Update Kaggle Dataset
-        run: kaggle datasets version -p . --dir-mode zip -m "Updated dataset with new changes"
+        run: python -m poetry run kaggle datasets version -p . --dir-mode zip -m "Updated dataset with new changes"
+        shell: pwsh
