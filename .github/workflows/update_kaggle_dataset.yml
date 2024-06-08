@@ -38,14 +38,7 @@ jobs:
 
       - name: Set up virtual environment and install dependencies
         run: |
-          if ($null -ne $env:VIRTUAL_ENV) {
-            Write-Host "Virtual environment is activated."
-          } else {
-            Write-Host "Virtual environment is not activated. Activating virtual environment..."
-            # Hardcoded path to your virtual environment
-            $venvPath = "C:\Users\roger\Github\chat-langchain\chat-langchain\Scripts\activate"
-            & $venvPath
-          }
+          .\chat-langchain\Scripts\activate
         shell: pwsh
         
       - name: Install dependencies with Poetry
