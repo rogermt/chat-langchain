@@ -27,26 +27,27 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Poetry
-        shell: pwsh
+       - name: Install Poetry
         run: |
-          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-          $oldPath = [Environment]::GetEnvironmentVariable("Path", "User")
-          $newPath = $oldPath + ";" + "$env:USERPROFILE\.poetry\bin"
-          [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-          $env:Path = $newPath  # Update the path for the current process
-
-      - name: Create and activate virtual environment
-        run: |
-          python -m venv .venv
-          .\.venv\Scripts\Activate.ps1
+          python -m pip install poetry==1.1.11
         shell: pwsh
 
-      - name: Install dependencies with Poetry
+      - name: Configure Poetry
         run: |
-          poetry install
+          python -m poetry config virtualenvs.in-project true
+        shell: pwsh
+
+      - name: Cache the virtualenv
+        uses: actions/cache@v3
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          python -m poetry install
+        shell: pwsh
         
-
       - name: Update lock file
         run: poetry lock --no-update
 
