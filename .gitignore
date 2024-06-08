@@ -157,3 +157,7 @@ notebooks
 .langgraph-data/
 
 .kaggle/
+
+#venv directory
+/chat-langchain/
+

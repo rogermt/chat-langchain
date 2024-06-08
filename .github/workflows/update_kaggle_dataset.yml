@@ -5,6 +5,14 @@ on:
     branches:
       - master
       - feature/add-groq-llm-model
+    paths-ignore:
+      - 'chat-langchain/**'
+  pull_request:
+    branches:
+      - master
+      - feature/add-groq-llm-model
+    paths-ignore:
+      - 'chat-langchain/**'
 
 jobs:
   update-dataset:
@@ -23,8 +31,21 @@ jobs:
         shell: pwsh
         run: |
           (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-          $env:PATH += ";$HOME\.local\bin"
+          $oldPath = [Environment]::GetEnvironmentVariable("Path", "User")
+          $newPath = $oldPath + ";" + "$env:USERPROFILE\.poetry\bin"
+          [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+          $env:Path = $newPath  # Update the path for the current process
 
+      - name: Set up virtual environment and install dependencies
+         run: |
+          if [ -n "$VIRTUAL_ENV" ]; then
+              echo "Virtual environment is activated."
+          else
+              echo "Virtual environment is not activated."
+              # Optionally, activate the virtual environment 
+              source chat-langchain/bin/activate
+          fi
+        
       - name: Install dependencies with Poetry
         run: poetry install
 
