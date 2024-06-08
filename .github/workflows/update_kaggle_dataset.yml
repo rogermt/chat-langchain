@@ -37,14 +37,15 @@ jobs:
           $env:Path = $newPath  # Update the path for the current process
 
       - name: Set up virtual environment and install dependencies
-         run: |
-          if [ -n "$VIRTUAL_ENV" ]; then
-              echo "Virtual environment is activated."
-          else
-              echo "Virtual environment is not activated."
-              # Optionally, activate the virtual environment 
-              source chat-langchain/bin/activate
-          fi
+        run: |
+          if ($null -ne $env:VIRTUAL_ENV) {
+            Write-Host "Virtual environment is activated."
+          } else {
+            Write-Host "Virtual environment is not activated."
+            # Optionally, activate the virtual environment
+            & $env:VIRTUAL_ENV/Scripts/activate
+          }
+        shell: pwsh
         
       - name: Install dependencies with Poetry
         run: poetry install
