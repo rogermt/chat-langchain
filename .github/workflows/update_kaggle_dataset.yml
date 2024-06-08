@@ -43,13 +43,13 @@ jobs:
           path: ./.venv
           key: ${{ runner.os }}-venv-${{ hashFiles('**/poetry.lock') }}
 
+      - name: Update lock file
+        run: poetry lock --no-update
+        shell: pwsh
+
       - name: Install dependencies
         run: |
           python -m poetry install
-        shell: pwsh
-
-      - name: Update lock file
-        run: poetry lock --no-update
         shell: pwsh
 
       - name: Install Kaggle API
