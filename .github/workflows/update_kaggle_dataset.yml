@@ -36,14 +36,17 @@ jobs:
           [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
           $env:Path = $newPath  # Update the path for the current process
 
-      - name: Set up virtual environment and install dependencies
+      - name: Create and activate virtual environment
         run: |
-          .\chat-langchain\Scripts\activate
-        shell: pwsh
-        
-      - name: Install dependencies with Poetry
-        run: poetry install
+          python -m venv .venv
+          .venv\Scripts\activate
+        shell: bash
 
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install
+        shell: bash
+        
       - name: Update lock file
         run: poetry lock --no-update
 
