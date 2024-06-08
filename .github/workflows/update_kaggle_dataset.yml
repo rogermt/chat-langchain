@@ -39,14 +39,14 @@ jobs:
       - name: Create and activate virtual environment
         run: |
           python -m venv .venv
-          .venv\Scripts\activate
-        shell: bash
+          .\.venv\Scripts\Activate.ps1
+        shell: pwsh
 
       - name: Install dependencies with Poetry
         run: |
           poetry install
-        shell: bash
         
+
       - name: Update lock file
         run: poetry lock --no-update
 
