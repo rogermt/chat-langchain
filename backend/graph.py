@@ -141,13 +141,14 @@ llm = gpt_3_5.configurable_alternatives(
     ConfigurableField(id="model_name"),
     default_key=OPENAI_MODEL_KEY,
     **{
-        ANTHROPIC_MODEL_KEY: claude_3_haiku,
-        FIREWORKS_MIXTRAL_MODEL_KEY: fireworks_mixtral,
+        #ANTHROPIC_MODEL_KEY: claude_3_haiku,
+        #FIREWORKS_MIXTRAL_MODEL_KEY: fireworks_mixtral,
         GOOGLE_MODEL_KEY: gemini_pro,
-        COHERE_MODEL_KEY: cohere_command,
+        #COHERE_MODEL_KEY: cohere_command,
     },
 ).with_fallbacks(
-    [gpt_3_5, claude_3_haiku, fireworks_mixtral, gemini_pro, cohere_command]
+    [gpt_3_5, gemini_pro, ]
+    #[gpt_3_5, claude_3_haiku, fireworks_mixtral, gemini_pro, cohere_command]
 )
 
 
@@ -275,6 +276,7 @@ def route_to_response_synthesizer(
 
 
 workflow = StateGraph(AgentState)
+
 
 # define nodes
 workflow.add_node("retriever", retrieve_documents)

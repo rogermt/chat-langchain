@@ -34,7 +34,7 @@
     "langsmith": "^0.0.41",
     "lodash.orderby": "^4.6.0",
     "marked": "^7.0.2",
-    "next": "13.5.4",
+    "next": "^14.2.4",
     "postcss": "8.4.31",
     "react": "18.2.0",
     "react-dom": "18.2.0",

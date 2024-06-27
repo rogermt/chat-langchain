@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { emojisplosion } from "emojisplosion";
 import { useState, useRef } from "react";
-import * as DOMPurify from "dompurify";
+import DOMPurify from "dompurify";
 import { Renderer, marked } from "marked";
 import hljs from "highlight.js";
 import {

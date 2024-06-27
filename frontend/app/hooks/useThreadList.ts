@@ -49,6 +49,8 @@ export function useThreadList(userId: string): ThreadListProps {
       if (userId == null) {
         return;
       }
+      console.log("Client:", client);
+      console.log("Client threads:", client.threads);
 
       setAreThreadsLoading(true);
       const fetchedThreads = await client.threads.search({

@@ -2,16 +2,18 @@
 import logging
 import os
 import re
+import subprocess
 
 import weaviate
 from bs4 import BeautifulSoup, SoupStrainer
-from langchain.document_loaders import RecursiveUrlLoader, SitemapLoader
+from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoader
 from langchain.indexes import SQLRecordManager, index
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
 from langchain_community.vectorstores import Weaviate
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from backend.constants import WEAVIATE_DOCS_INDEX_NAME
 from backend.parser import langchain_docs_extractor
@@ -19,9 +21,38 @@ from backend.parser import langchain_docs_extractor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def get_device():
+    try:
+        # Check for NVIDIA GPU
+        nvidia_smi = subprocess.run(["nvidia-smi"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if nvidia_smi.returncode == 0:
+            return "cuda"
+        
+        # Check for AMD GPU
+        rocm_smi = subprocess.run(["rocm-smi"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if rocm_smi.returncode == 0:
+            return "rocm"
+    except FileNotFoundError:
+        pass
+    
+    # If no GPU detected or commands not found, return "cpu"
+    return "cpu"
+
+def get_embeddings_model_openai() -> Embeddings:
+    return OpenAIEmbeddings(model="text-embedding-3-small", chunk_size=200)
+
+def get_embeddings_model_huggingface():
+    device = get_device()
+    embedding_model_name = "thenlper/gte-base"
+    embedding_model = HuggingFaceEmbeddings(
+        model_name=embedding_model_name,
+        model_kwargs={"device": device},
+        encode_kwargs={"device": device, "batch_size": 100}
+    )
+    return embedding_model
 
 def get_embeddings_model() -> Embeddings:
-    return OpenAIEmbeddings(model="text-embedding-3-small", chunk_size=200)
+    return get_embeddings_model_huggingface()
 
 
 def metadata_extractor(meta: dict, soup: BeautifulSoup) -> dict:

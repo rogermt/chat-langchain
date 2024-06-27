@@ -2,6 +2,7 @@
 start:
 	langgraph up --watch
 
+
 .PHONY: format
 format:
 	poetry run ruff format .

@@ -32,7 +32,8 @@ import { useLangGraphClient } from "../hooks/useLangGraphClient";
 import { useStreamState } from "../hooks/useStreamState";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
-const MODEL_TYPES = ["openai_gpt_3_5_turbo", "anthropic_claude_3_haiku"];
+//const MODEL_TYPES = ["openai_gpt_3_5_turbo", "anthropic_claude_3_haiku"];
+const MODEL_TYPES = ["openai_gpt_3_5_turbo",];
 
 const defaultLlmValue =
   MODEL_TYPES[Math.floor(Math.random() * MODEL_TYPES.length)];
