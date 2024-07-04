@@ -33,6 +33,7 @@ const MODEL_TYPES = [
   "google_gemini_pro",
   "fireworks_mixtral",
   "cohere_command",
+  "groq_llm",
 ];
 
 const defaultLlmValue =
@@ -255,6 +256,7 @@ export function ChatWindow(props: { conversationId: string }) {
                 width={"240px"}
               >
                 <option value="openai_gpt_3_5_turbo">GPT-3.5-Turbo</option>
+                <option value="groq_llm">Groq</option>
                 <option value="anthropic_claude_3_haiku">Claude 3 Haiku</option>
                 <option value="google_gemini_pro">Google Gemini Pro</option>
                 <option value="fireworks_mixtral">
