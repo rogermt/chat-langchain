@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chat-langchain"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["SN <6432132+samnoyes@users.noreply.github.com>"]
 readme = "README.md"
@@ -26,6 +26,8 @@ voyageai = "^0.1.4"
 pillow = "^10.2.0"
 tiktoken = "^0.5.2"
 cohere = "4.45"
+langchain-huggingface = "^0.0.3"
+langchain-groq = "^0.1.5"
 
 
 [tool.poetry.group.lint.dependencies]

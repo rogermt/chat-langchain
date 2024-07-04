@@ -10,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from langserve import add_routes
 from langsmith import Client
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = Client()
 

@@ -1,0 +1,53 @@
+name: Update Kaggle Dataset
+on:
+  push:
+    branches:
+      - master
+      - revert_chain_add_groq
+jobs:
+  update-dataset:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Kaggle API
+        run: pip install kaggle
+      - name: Configure Kaggle API credentials
+        run: |
+          mkdir -p ~/.kaggle
+          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: Create dataset metadata
+        run: |
+          echo '{
+            "title": "chat-langchain forked github repository",
+            "id": "rogermt/chat-langchain-repo",
+            "licenses": [
+              {
+                "name": "CC0-1.0"
+              }
+            ]
+          }' > dataset-metadata.json
+
+      - name: Zip the dataset
+        shell: pwsh
+        run: |
+          if (Test-Path ../chat-langchain-repo.zip) { Remove-Item ../chat-langchain-repo.zip }
+          $filesToZip = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch "\.env$" }
+          Compress-Archive -Path $filesToZip.FullName -DestinationPath ../chat-langchain-repo.zip -Force
+
+      - name: Check if dataset exists and create if not
+        run: |
+          kaggle datasets create -p . --dir-mode zip || echo "Dataset already exists, continuing to update."
+
+      - name: Update Kaggle Dataset
+        run: |
+          kaggle datasets version -p . --dir-mode zip -m "Updated dataset with new changes"
+       
