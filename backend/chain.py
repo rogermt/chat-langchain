@@ -230,7 +230,7 @@ def create_chain(llm: LanguageModelLike, retriever: BaseRetriever) -> Runnable:
             fireworks_mixtral=default_response_synthesizer,
             google_gemini_pro=default_response_synthesizer,
             cohere_command=cohere_response_synthesizer,
-            groq_llm=default_response_synthesizer,
+            groq_llama3=default_response_synthesizer,
         )
         | StrOutputParser()
     ).with_config(run_name="GenerateResponse")
@@ -261,7 +261,7 @@ gemini_pro = ChatGoogleGenerativeAI(
     convert_system_message_to_human=True,
     google_api_key=os.environ.get("GOOGLE_API_KEY", "not_provided"),
 )
-groq_llm = ChatGroq(
+groq_llama3= ChatGroq(
     model="llama3-70b-8192",
     temperature=0,
     groq_api_key=os.environ.get("GROQ_API_KEY", "not_provided"),
@@ -279,10 +279,10 @@ llm = gpt_3_5.configurable_alternatives(
     anthropic_claude_3_haiku=claude_3_haiku,
     fireworks_mixtral=fireworks_mixtral,
     google_gemini_pro=gemini_pro,
-    groq_llm=groq_llm,
+    groq_llama3=groq_llama3,
     cohere_command=cohere_command,
 ).with_fallbacks(
-    [gpt_3_5, claude_3_haiku, fireworks_mixtral, gemini_pro, groq_llm, cohere_command]
+    [gpt_3_5, claude_3_haiku, fireworks_mixtral, gemini_pro, groq_llama3, cohere_command]
 )
 
 retriever = get_retriever()
