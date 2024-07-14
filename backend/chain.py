@@ -3,13 +3,14 @@ from operator import itemgetter
 from typing import Dict, List, Optional, Sequence
 
 import weaviate
-from constants import WEAVIATE_DOCS_INDEX_NAME
+from constants import WEAVIATE_DOCS_INDEX_NAME, PINECONE_DOCS_INDEX_NAME, WEAVIATE, PINECONE
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from ingest import get_embeddings_model
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import ChatCohere
 from langchain_community.vectorstores import Weaviate
+from langchain_pinecone import PineconeVectorStore
 from langchain_core.documents import Document
 from langchain_core.language_models import LanguageModelLike
 from langchain_core.messages import AIMessage, HumanMessage
@@ -130,7 +131,7 @@ class ChatRequest(BaseModel):
     chat_history: Optional[List[Dict[str, str]]]
 
 
-def get_retriever() -> BaseRetriever:
+def get_weaviate_retriever() -> BaseRetriever:
     weaviate_client = weaviate.Client(
         url=WEAVIATE_URL,
         auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
@@ -144,6 +145,20 @@ def get_retriever() -> BaseRetriever:
         attributes=["source", "title"],
     )
     return weaviate_client.as_retriever(search_kwargs=dict(k=6))
+
+
+def get_pinecone_retriever() -> BaseRetriever:
+    PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
+    embedding = get_embeddings_model()
+    vectorstore = PineconeVectorStore(index_name=PINECONE_DOCS_INDEX_NAME, embedding=embedding)
+    return vectorstore.as_retriever(search_kwargs=dict(k=6))
+
+
+def get_retriever(vectordb=WEAVIATE) -> BaseRetriever:
+    if vectordb == WEAVIATE:
+        return get_weaviate_retriever()
+    elif vectordb == PINECONE:
+        return get_pinecone_retriever()
 
 
 def create_retriever_chain(
@@ -285,5 +300,6 @@ llm = gpt_3_5.configurable_alternatives(
     [gpt_3_5, claude_3_haiku, fireworks_mixtral, gemini_pro, groq_llama3, cohere_command]
 )
 
-retriever = get_retriever()
+vectordb = os.environ["VECTOR_DB"]
+retriever = get_retriever(vectordb)
 answer_chain = create_chain(llm, retriever)

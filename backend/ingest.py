@@ -7,12 +7,13 @@ from parser import langchain_docs_extractor
 
 import weaviate
 from bs4 import BeautifulSoup, SoupStrainer
-from constants import WEAVIATE_DOCS_INDEX_NAME
+from constants import WEAVIATE_DOCS_INDEX_NAME, PINECONE_DOCS_INDEX_NAME, PINECONE, WEAVIATE
 from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoader
 from langchain.indexes import SQLRecordManager, index
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
 from langchain_community.vectorstores import Weaviate
+from langchain_pinecone import PineconeVectorStore
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -131,14 +132,10 @@ def load_api_docs():
     ).load()
 
 
-def ingest_docs():
+def ingest_docs_weaviate(embedding):
     WEAVIATE_URL = os.environ["WEAVIATE_URL"]
     WEAVIATE_API_KEY = os.environ["WEAVIATE_API_KEY"]
-    RECORD_MANAGER_DB_URL = os.environ["RECORD_MANAGER_DB_URL"]
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-    embedding = get_embeddings_model()
-
+    
     client = weaviate.Client(
         url=WEAVIATE_URL,
         auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
@@ -151,9 +148,42 @@ def ingest_docs():
         by_text=False,
         attributes=["source", "title"],
     )
+    namespace = f"weaviate/{WEAVIATE_DOCS_INDEX_NAME}"  
+    return client, vectorstore, namespace
+
+def ingest_docs_pinecone(embedding):
+    PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"]
+    PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
+    client = Pinecone(
+        api_key=PINECONE_API_KEY
+    )
+    vectorstore = PineconeVectorStore(
+        index_name=PINECONE_INDEX_NAME, 
+        embedding=embedding
+    )
+    namespace =  f"pinecone/{PINECONE_INDEX_NAME}"
+    return client, vectorstore, namespace
 
     record_manager = SQLRecordManager(
-        f"weaviate/{WEAVIATE_DOCS_INDEX_NAME}", db_url=RECORD_MANAGER_DB_URL
+        f"pinecone/{PINECONE_INDEX_NAME}", db_url=record_manager_db_url
+    )
+    record_manager.create_schema()
+
+
+def ingest_docs(vectordb=WEAVIATE):
+    record_manager_db_url = os.environ["RECORD_MANAGER_DB_URL"]
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
+    embedding = get_embeddings_model()
+    ingest_docs_pinecone(embedding, record_manager_db_url)
+
+    if vectordb == "WEAVIATE":
+        client, vectorstore, namespace = ingest_docs_weaviate(embedding)
+    elif vectordb == "PINECONE":
+        client, vectorstore, namespace = ingest_docs_pinecone(embedding)
+
+    record_manager = SQLRecordManager(
+        namespace, db_url=record_manager_db_url
     )
     record_manager.create_schema()
 
@@ -188,7 +218,8 @@ def ingest_docs():
     )
 
     logger.info(f"Indexing stats: {indexing_stats}")
-    num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
+    if vectordb == WEAVIATE:
+        num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
     logger.info(
         f"LangChain now has this many vectors: {num_vecs}",
     )
