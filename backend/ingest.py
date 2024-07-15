@@ -1,8 +1,9 @@
-"""Load html from files, clean up, split, ingest into Weaviate."""
+from typing import Dict, Optional, Any
 import logging
 import os
 import re
 import subprocess
+import traceback
 from parser import langchain_docs_extractor
 
 import weaviate
@@ -12,11 +13,13 @@ from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoad
 from langchain.indexes import SQLRecordManager, index
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
-from langchain_community.vectorstores import Weaviate, Pinecone
+from langchain_community.vectorstores import Weaviate
+from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -95,8 +98,8 @@ def load_langsmith_docs():
         max_depth=8,
         extractor=simple_extractor,
         prevent_outside=True,
-        use_async=True,
-        timeout=600,
+        use_async=False,
+        timeout=1200,
         # Drop trailing / to avoid duplicate pages.
         link_regex=(
             f"href=[\"']{PREFIXES_TO_IGNORE_REGEX}((?:{SUFFIXES_TO_IGNORE_REGEX}.)*?)"
@@ -110,15 +113,14 @@ def simple_extractor(html: str) -> str:
     soup = BeautifulSoup(html, "lxml")
     return re.sub(r"\n\n+", "\n\n", soup.text).strip()
 
-
+    
 def load_api_docs():
     return RecursiveUrlLoader(
         url="https://api.python.langchain.com/en/latest/",
         max_depth=8,
         extractor=simple_extractor,
         prevent_outside=True,
-        use_async=True,
-        timeout=600,
+        use_async=False,
         # Drop trailing / to avoid duplicate pages.
         link_regex=(
             f"href=[\"']{PREFIXES_TO_IGNORE_REGEX}((?:{SUFFIXES_TO_IGNORE_REGEX}.)*?)"
@@ -151,10 +153,25 @@ def ingest_docs_weaviate(embedding):
     namespace = f"weaviate/{WEAVIATE_DOCS_INDEX_NAME}"  
     return client, vectorstore, namespace
 
+
 def ingest_docs_pinecone(embedding):
     PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
     client = Pinecone(
         api_key=PINECONE_API_KEY
+    )
+    spec = ServerlessSpec(
+                cloud=os.environ["PINECONE_CLOUD"],
+                region=os.environ["PINECONE_REGION"])
+
+    # First, check if our index already exists. If it doesn't, we create it
+    if PINECONE_DOCS_INDEX_NAME not in client.list_indexes().names():
+        PINECONE_INDEX_DIMENSION = 768
+        # we create a new index
+        client.create_index(
+          name=PINECONE_DOCS_INDEX_NAME,
+          metric='cosine',
+          dimension=PINECONE_INDEX_DIMENSION,
+          spec=spec
     )
     vectorstore = PineconeVectorStore(
         index_name=PINECONE_DOCS_INDEX_NAME, 
@@ -163,19 +180,57 @@ def ingest_docs_pinecone(embedding):
     namespace =  f"pinecone/{PINECONE_DOCS_INDEX_NAME}"
     return client, vectorstore, namespace
 
-
+    
+def do_upsert(
+    docs_transformed,
+    record_manager,
+    vectorstore,
+    cleanup: str = "full",
+    source_id_key: str = "source",
+    force_update: bool = False
+) -> Dict[str, Any]:
+    try:
+        force_update = (os.environ.get("FORCE_UPDATE") or "false").lower() == "true"
+        
+        indexing_stats = index(
+            docs_transformed,
+            record_manager,
+            vectorstore,
+            cleanup=cleanup,
+            source_id_key=source_id_key,
+            force_update=force_update,
+        )
+        return indexing_stats
+    except Exception as e:
+        error_message = f"An error occurred during indexing: {str(e)}"
+        print(error_message)
+        print("Traceback:")
+        traceback.print_exc()
+        
+        # You might want to return some information about the error
+        return {
+            "error": error_message,
+            "traceback": traceback.format_exc()
+        }
+    
 
 def ingest_docs(vectordb=WEAVIATE):
+     
+    vectordb_functions = {
+        "WEAVIATE": ingest_docs_weaviate,
+        "PINECONE": ingest_docs_pinecone
+    }
     record_manager_db_url = os.environ["RECORD_MANAGER_DB_URL"]
-
+    vectordb = os.environ.get('VECTOR_DB', vectordb)
+    
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
     embedding = get_embeddings_model()
-    ingest_docs_pinecone(embedding, record_manager_db_url)
-
-    if vectordb == WEAVIATE:
-        client, vectorstore, namespace = ingest_docs_weaviate(embedding)
-    elif vectordb == PINECONE:
-        client, vectorstore, namespace = ingest_docs_pinecone(embedding)
+   
+    if vectordb in vectordb_functions:
+        ingest_function = vectordb_functions[vectordb]
+        client, vectorstore, namespace = ingest_function(embedding)
+    else:
+        print(f"Unknown vectordb value: {vectordb}")
 
     record_manager = SQLRecordManager(
         namespace, db_url=record_manager_db_url
@@ -203,7 +258,7 @@ def ingest_docs(vectordb=WEAVIATE):
         if "title" not in doc.metadata:
             doc.metadata["title"] = ""
 
-    indexing_stats = index(
+    indexing_stats = do_upsert(
         docs_transformed,
         record_manager,
         vectorstore,
@@ -215,11 +270,15 @@ def ingest_docs(vectordb=WEAVIATE):
     logger.info(f"Indexing stats: {indexing_stats}")
     if vectordb == WEAVIATE:
         num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
+    elif vectordb == PINECONE:
+        index_stats = client.Index(PINECONE_DOCS_INDEX_NAME).describe_index_stats()
+        num_vecs = client.Index(PINECONE_DOCS_INDEX_NAME).describe_index_stats()["namespaces"][""]["vector_count"]
     else:
         num_vecs = 0
     logger.info(
         f"LangChain now has this many vectors: {num_vecs}",
     )
+
 
 
 if __name__ == "__main__":
