@@ -216,6 +216,8 @@ def ingest_docs(vectordb=WEAVIATE):
     logger.info(f"Indexing stats: {indexing_stats}")
     if vectordb == WEAVIATE:
         num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
+    else:
+        num_vecs = 0
     logger.info(
         f"LangChain now has this many vectors: {num_vecs}",
     )
