@@ -12,7 +12,7 @@ from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoad
 from langchain.indexes import SQLRecordManager, index
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
-from langchain_community.vectorstores import Weaviate
+from langchain_community.vectorstores import Weaviate, Pinecone
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
@@ -158,16 +158,12 @@ def ingest_docs_pinecone(embedding):
         api_key=PINECONE_API_KEY
     )
     vectorstore = PineconeVectorStore(
-        index_name=PINECONE_INDEX_NAME, 
+        index_name=PINECONE_DOCS_INDEX_NAME, 
         embedding=embedding
     )
-    namespace =  f"pinecone/{PINECONE_INDEX_NAME}"
+    namespace =  f"pinecone/{PINECONE_DOCS_INDEX_NAME}"
     return client, vectorstore, namespace
 
-    record_manager = SQLRecordManager(
-        f"pinecone/{PINECONE_INDEX_NAME}", db_url=record_manager_db_url
-    )
-    record_manager.create_schema()
 
 
 def ingest_docs(vectordb=WEAVIATE):
@@ -177,9 +173,9 @@ def ingest_docs(vectordb=WEAVIATE):
     embedding = get_embeddings_model()
     ingest_docs_pinecone(embedding, record_manager_db_url)
 
-    if vectordb == "WEAVIATE":
+    if vectordb == WEAVIATE:
         client, vectorstore, namespace = ingest_docs_weaviate(embedding)
-    elif vectordb == "PINECONE":
+    elif vectordb == PINECONE:
         client, vectorstore, namespace = ingest_docs_pinecone(embedding)
 
     record_manager = SQLRecordManager(

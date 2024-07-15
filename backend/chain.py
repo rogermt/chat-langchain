@@ -122,10 +122,6 @@ app.add_middleware(
 )
 
 
-WEAVIATE_URL = os.environ["WEAVIATE_URL"]
-WEAVIATE_API_KEY = os.environ["WEAVIATE_API_KEY"]
-
-
 class ChatRequest(BaseModel):
     question: str
     chat_history: Optional[List[Dict[str, str]]]
@@ -148,7 +144,6 @@ def get_weaviate_retriever() -> BaseRetriever:
 
 
 def get_pinecone_retriever() -> BaseRetriever:
-    PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
     embedding = get_embeddings_model()
     vectorstore = PineconeVectorStore(index_name=PINECONE_DOCS_INDEX_NAME, embedding=embedding)
     return vectorstore.as_retriever(search_kwargs=dict(k=6))
