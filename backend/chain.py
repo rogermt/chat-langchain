@@ -128,6 +128,8 @@ class ChatRequest(BaseModel):
 
 
 def get_weaviate_retriever() -> BaseRetriever:
+    WEAVIATE_URL = os.environ["WEAVIATE_URL"]
+    WEAVIATE_API_KEY = os.environ["WEAVIATE_API_KEY"]
     weaviate_client = weaviate.Client(
         url=WEAVIATE_URL,
         auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
