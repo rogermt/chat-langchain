@@ -152,7 +152,6 @@ def ingest_docs_weaviate(embedding):
     return client, vectorstore, namespace
 
 def ingest_docs_pinecone(embedding):
-    PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"]
     PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
     client = Pinecone(
         api_key=PINECONE_API_KEY
