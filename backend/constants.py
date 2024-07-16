@@ -1,4 +1,4 @@
 WEAVIATE_DOCS_INDEX_NAME = "LangChain_Combined_Docs_hf_gte_base"
-PINECONE_DOCS_INDEX_NAME = "langChain-docs"
+PINECONE_DOCS_INDEX_NAME = "langchain-docs"
 WEAVIATE = "WEAVIATE"
 PINECONE = "PINECONE"
