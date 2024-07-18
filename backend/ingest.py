@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 import logging
 import os
 import re
@@ -271,8 +271,9 @@ def ingest_docs(vectordb=WEAVIATE):
     if vectordb == WEAVIATE:
         num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
     elif vectordb == PINECONE:
+        default_namespace = ""
         index_stats = client.Index(PINECONE_DOCS_INDEX_NAME).describe_index_stats()
-        num_vecs = client.Index(PINECONE_DOCS_INDEX_NAME).describe_index_stats()["namespaces"][""]["vector_count"]
+        num_vecs = index_stats["namespaces"][default_namespace]["vector_count"]
     else:
         num_vecs = 0
     logger.info(
