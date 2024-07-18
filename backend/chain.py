@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ingest import get_embeddings_model
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import ChatCohere
-from langchain_community.vectorstores import Weaviate
+from langchain_weaviate import WeaviateVectorStore
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.documents import Document
 from langchain_core.language_models import LanguageModelLike
@@ -130,16 +130,18 @@ class ChatRequest(BaseModel):
 def get_weaviate_retriever() -> BaseRetriever:
     WEAVIATE_URL = os.environ["WEAVIATE_URL"]
     WEAVIATE_API_KEY = os.environ["WEAVIATE_API_KEY"]
-    weaviate_client = weaviate.Client(
-        url=WEAVIATE_URL,
-        auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
+    weaviate_client = weaviate.connect_to_wcs(
+        cluster_url=os.environ["WEAVIATE_URL"],
+        auth_credentials=weaviate.classes.init.Auth.api_key(
+            os.environ.get("WEAVIATE_API_KEY", "not_provided")
+        ),
+        skip_init_checks=True,
     )
-    weaviate_client = Weaviate(
+    weaviate_client = WeaviateVectorStore(
         client=weaviate_client,
         index_name=WEAVIATE_DOCS_INDEX_NAME,
         text_key="text",
         embedding=get_embeddings_model(),
-        by_text=False,
         attributes=["source", "title"],
     )
     return weaviate_client.as_retriever(search_kwargs=dict(k=6))

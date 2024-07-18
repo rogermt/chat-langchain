@@ -13,7 +13,8 @@ from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoad
 from langchain.indexes import SQLRecordManager, index
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
-from langchain_community.vectorstores import Weaviate
+
+from langchain_weaviate import WeaviateVectorStore
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.embeddings import Embeddings
@@ -133,23 +134,35 @@ def load_api_docs():
         ),
     ).load()
 
+def load_langgraph_docs():
+    return SitemapLoader(
+        "https://langchain-ai.github.io/langgraph/sitemap.xml",
+        parsing_function=simple_extractor,
+        default_parser="lxml",
+        bs_kwargs={"parse_only": SoupStrainer(name=("article", "title"))},
+        meta_function=lambda meta, soup: metadata_extractor(
+            meta, soup, title_suffix=" | 🦜🕸️LangGraph"
+        ),
+    ).load()
+
 
 def ingest_docs_weaviate(embedding):
     WEAVIATE_URL = os.environ["WEAVIATE_URL"]
     WEAVIATE_API_KEY = os.environ["WEAVIATE_API_KEY"]
     
-    client = weaviate.Client(
-        url=WEAVIATE_URL,
-        auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
+    client = weaviate.connect_to_wcs(
+        cluster_url=WEAVIATE_URL,
+        auth_credentials=weaviate.classes.init.Auth.api_key(WEAVIATE_API_KEY),
+        skip_init_checks=True,
     )
-    vectorstore = Weaviate(
+    vectorstore = WeaviateVectorStore(
         client=client,
         index_name=WEAVIATE_DOCS_INDEX_NAME,
         text_key="text",
         embedding=embedding,
-        by_text=False,
         attributes=["source", "title"],
     )
+
     namespace = f"weaviate/{WEAVIATE_DOCS_INDEX_NAME}"  
     return client, vectorstore, namespace
 
@@ -243,9 +256,15 @@ def ingest_docs(vectordb=WEAVIATE):
     logger.info(f"Loaded {len(docs_from_api)} docs from API")
     docs_from_langsmith = load_langsmith_docs()
     logger.info(f"Loaded {len(docs_from_langsmith)} docs from Langsmith")
+    docs_from_langgraph = load_langgraph_docs()
+    logger.info(f"Loaded {len(docs_from_langgraph)} docs from LangGraph")
+
 
     docs_transformed = text_splitter.split_documents(
-        docs_from_documentation + docs_from_api + docs_from_langsmith
+        docs_from_documentation
+        + docs_from_api
+        + docs_from_langsmith
+        + docs_from_langgraph
     )
     docs_transformed = [doc for doc in docs_transformed if len(doc.page_content) > 10]
 
