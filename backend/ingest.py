@@ -110,11 +110,18 @@ def load_langsmith_docs():
     ).load()
 
 
-def simple_extractor(html: str) -> str:
-    soup = BeautifulSoup(html, "lxml")
+def simple_extractor(html: str | BeautifulSoup) -> str:
+    if isinstance(html, str):
+        soup = BeautifulSoup(html, "lxml")
+    elif isinstance(html, BeautifulSoup):
+        soup = html
+    else:
+        raise ValueError(
+            "Input should be either BeautifulSoup object or an HTML string"
+        )
     return re.sub(r"\n\n+", "\n\n", soup.text).strip()
 
-    
+
 def load_api_docs():
     return RecursiveUrlLoader(
         url="https://api.python.langchain.com/en/latest/",
@@ -133,6 +140,7 @@ def load_api_docs():
             "https://api.python.langchain.com/en/latest/_modules",
         ),
     ).load()
+
 
 def load_langgraph_docs():
     return SitemapLoader(
