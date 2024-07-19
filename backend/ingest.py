@@ -65,15 +65,23 @@ def get_embeddings_model() -> Embeddings:
     return get_embeddings_model_huggingface()
 
 
-def metadata_extractor(meta: dict, soup: BeautifulSoup) -> dict:
-    title = soup.find("title")
-    description = soup.find("meta", attrs={"name": "description"})
-    html = soup.find("html")
+def metadata_extractor(
+    meta: dict, soup: BeautifulSoup, title_suffix: Optional[str] = None
+) -> dict:
+    title_element = soup.find("title")
+    description_element = soup.find("meta", attrs={"name": "description"})
+    html_element = soup.find("html")
+    title = title_element.get_text() if title_element else ""
+    if title_suffix is not None:
+        title += title_suffix
+
     return {
         "source": meta["loc"],
-        "title": title.get_text() if title else "",
-        "description": description.get("content", "") if description else "",
-        "language": html.get("lang", "") if html else "",
+        "title": title,
+        "description": description_element.get("content", "")
+        if description_element
+        else "",
+        "language": html_element.get("lang", "") if html_element else "",
         **meta,
     }
 
