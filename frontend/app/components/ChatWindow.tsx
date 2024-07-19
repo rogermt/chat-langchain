@@ -110,8 +110,12 @@ export function ChatWindow(props: { conversationId: string }) {
         url: apiBaseUrl + "/chat",
         options: {
           timeout: 60000,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          },
         },
       });
+     
       const llmDisplayName = llm ?? "openai_gpt_3_5_turbo";
       const streamLog = await remoteChain.streamLog(
         {

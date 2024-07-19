@@ -304,7 +304,11 @@ def ingest_docs(vectordb=WEAVIATE):
 
     logger.info(f"Indexing stats: {indexing_stats}")
     if vectordb == WEAVIATE:
-        num_vecs = client.query.aggregate(WEAVIATE_DOCS_INDEX_NAME).with_meta_count().do()
+        num_vecs = (
+            client.collections.get(WEAVIATE_DOCS_INDEX_NAME)
+            .aggregate.over_all()
+            .total_count
+        )
     elif vectordb == PINECONE:
         default_namespace = ""
         index_stats = client.Index(PINECONE_DOCS_INDEX_NAME).describe_index_stats()

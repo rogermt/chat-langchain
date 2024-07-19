@@ -5,7 +5,7 @@ from uuid import UUID
 
 import langsmith
 from chain import ChatRequest, answer_chain
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from langserve import add_routes
 from langsmith import Client
@@ -17,6 +17,13 @@ load_dotenv()
 client = Client()
 
 app = FastAPI()
+
+@app.middleware("http")
+async def add_ngrok_header(request: Request, call_next):
+    request.headers["ngrok-skip-browser-warning"] = "true"
+    response = await call_next(request)
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
