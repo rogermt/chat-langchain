@@ -4,11 +4,9 @@ from typing import Dict, List, Optional, Sequence
 
 import weaviate
 from constants import WEAVIATE_DOCS_INDEX_NAME, PINECONE_DOCS_INDEX_NAME, WEAVIATE, PINECONE
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from ingest import get_embeddings_model
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import ChatCohere
+from langchain_cohere import ChatCohere
 from langchain_weaviate import WeaviateVectorStore
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.documents import Document
@@ -107,19 +105,6 @@ Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone Question:"""
-
-
-client = Client()
-
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
 
 
 class ChatRequest(BaseModel):
@@ -275,7 +260,7 @@ gemini_pro = ChatGoogleGenerativeAI(
     convert_system_message_to_human=True,
     google_api_key=os.environ.get("GOOGLE_API_KEY", "not_provided"),
 )
-groq_llama3= ChatGroq(
+groq_llama3 = ChatGroq(
     model="llama3-70b-8192",
     temperature=0,
     groq_api_key=os.environ.get("GROQ_API_KEY", "not_provided"),
